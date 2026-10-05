@@ -2,6 +2,9 @@
 
 Personal training tracker for iPhone. A web app (PWA): no App Store, no cost.
 
+**Live:** https://webjohn7.github.io/forge/ — open it in Safari on the iPhone, then
+Share → Add to Home Screen (details in [§2](#2-install-on-the-iphone)).
+
 - **Enforced week:** Mon run + TKD club 18:00, Tue lower body, Wed TKD club, Thu rest,
   Fri upper body, Sat TKD at home, Sun full body + TKD.
 - **Consequences:** a session not logged by 23:59 can still be logged until 12:00 the next day

@@ -4,6 +4,9 @@ Forge — personal training tracker PWA for the user's iPhone. `README.md` cover
 and the deploy/install/notification setup. `plan.txt` is the agreed plan. This file covers how
 the code is arranged and what must not break.
 
+Read `about-this-project.md` at the start of every session — it holds the owner's own context
+(purpose, priorities, what to avoid) that the code doesn't show.
+
 ## Commands
 
 ```bash
@@ -13,7 +16,25 @@ node tools/make-icons.mjs  # icons/*.png, pure Node
 cd worker && npx wrangler deploy --dry-run --outdir <tmp>   # check the Worker bundles
 ```
 
+Single test file / single test (tests live in `test/*.test.js`, one per pure module plus `webpush` and `worker`):
+
+```bash
+node --test test/schedule.test.js
+node --test --test-name-pattern="streak" test/penalties.test.js
+```
+
 No build, no bundler, no `dependencies`. Hosted as static files on GitHub Pages.
+
+## Data flow
+
+`store.js` (IndexedDB) → `app.js` loads raw data → `model.compute(data, now)` derives everything the
+screens render → `ui/*.js` draw it; every mutation goes through `app.js`, which re-derives. Push state is
+separate: `model.pushState()` builds the snapshot that `push.js` POSTs to the Worker's `/state`
+(Bearer TOKEN); the Worker's cron then runs `reminders.js` against that snapshot. The Worker never sees
+the full log.
+
+Secrets: `worker/.dev.vars` (VAPID keys + token) is git-ignored — never commit it; `tools/push-secrets.mjs`
+uploads it as Worker secrets. Deploy/setup steps are in `README.md`.
 
 ## Module split — the load-bearing boundary
 
