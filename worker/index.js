@@ -3,10 +3,12 @@
 //   POST /subscribe   ← PushSubscription JSON              (Bearer TOKEN)
 //   POST /state       ← schedule / logged / debts / verdict (Bearer TOKEN)
 //   POST /test        → sends a test notification          (Bearer TOKEN)
+//   POST /backup      ← full export (same JSON as Export)  (Bearer TOKEN)
+//   POST /restore     → latest backup, or { date } → that day's copy (Bearer TOKEN)
 //   cron every 15 min → sends whatever reminders are due (see src/reminders.js)
 //
 // Secrets (npx wrangler secret put …): TOKEN, VAPID_PUBLIC, VAPID_PRIVATE, VAPID_SUBJECT
-// KV binding: FORGE  (keys: sub, state, sent)
+// KV binding: FORGE  (keys: sub, state, sent, backup, backup:YYYY-MM-DD)
 
 import { sendPush } from './webpush.js';
 import { dueReminders, pruneSent } from '../src/reminders.js';
@@ -44,6 +46,21 @@ async function deliver(env, messages) {
   return { sent };
 }
 
+// A backup "holds data" when any log store is non-empty; settings alone don't count.
+const LOG_STORES = ['sessions', 'bodyweight', 'debts', 'moves'];
+const holdsData = (b) => LOG_STORES.some((k) => Array.isArray(b?.[k]) && b[k].length > 0);
+const DAILY_TTL = 30 * 24 * 3600;
+
+async function saveBackup(env, backup, now = new Date()) {
+  if (backup?.app !== 'forge' || !LOG_STORES.every((k) => Array.isArray(backup[k]))) return json({ error: 'not a Forge backup' }, 400);
+  // A fresh install must never wipe the cloud copy before it has been restored from.
+  if (!holdsData(backup) && holdsData(await env.FORGE.get('backup', 'json'))) return json({ error: 'refusing to replace a backup that holds data with an empty one' }, 409);
+  const body = JSON.stringify(backup);
+  await env.FORGE.put('backup', body);
+  await env.FORGE.put(`backup:${now.toISOString().slice(0, 10)}`, body, { expirationTtl: DAILY_TTL });
+  return json({ ok: true });
+}
+
 async function tick(env, now = new Date()) {
   const state = (await env.FORGE.get('state', 'json')) || {};
   const sent = new Set((await env.FORGE.get('sent', 'json')) || []);
@@ -76,6 +93,13 @@ export default {
       }
       if (pathname === '/test') {
         return json(await deliver(env, [{ key: 'test', title: 'Forge is watching', body: 'Notifications work. Now go train.' }]));
+      }
+      if (pathname === '/backup') return await saveBackup(env, await req.json());
+      if (pathname === '/restore') {
+        const { date } = await req.json().catch(() => ({}));
+        if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) return json({ error: 'bad date' }, 400);
+        const backup = await env.FORGE.get(date ? `backup:${date}` : 'backup', 'json');
+        return backup ? json(backup) : json({ error: 'no backup' }, 404);
       }
       if (pathname === '/tick') return json(await tick(env)); // manual run of the cron logic
     } catch (e) {

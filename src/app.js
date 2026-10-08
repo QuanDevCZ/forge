@@ -4,7 +4,7 @@ import * as store from './store.js';
 import { compute, withDefaults, pushState } from './model.js';
 import { toISO } from './schedule.js';
 import { payOldest } from './penalties.js';
-import { enablePush as subscribePush, syncPushState, sendTestPush } from './push.js';
+import { enablePush as subscribePush, syncPushState, sendTestPush, uploadBackup, downloadBackup } from './push.js';
 import { parseHash, toast } from './ui/dom.js';
 import { renderToday } from './ui/today.js';
 import { renderLog } from './ui/log.js';
@@ -45,6 +45,30 @@ async function sync(d) {
   try { await syncPushState(cfg, state); lastSync = key; } catch (e) { console.warn('[forge] push sync failed', e); }
 }
 
+// Cloud backup: the whole export goes to the Worker whenever it changed. The Worker refuses
+// an empty export over one that holds data (409), so a fresh install can't wipe the cloud copy.
+let lastBackup = '';
+async function backup() {
+  const cfg = data.settings.push;
+  if (!cfg.workerUrl || !cfg.token) return;
+  const out = await store.exportAll();
+  const key = JSON.stringify({ ...out, exportedAt: null });
+  if (key === lastBackup) return;
+  try { await uploadBackup(cfg, out); lastBackup = key; } catch (e) { console.warn('[forge] cloud backup failed', e); }
+}
+
+// Replace local data with the cloud backup, keeping the Worker URL + token just entered.
+async function restoreFromCloud(cfg) {
+  const cloud = await downloadBackup(cfg);
+  if (!cloud) return false;
+  await store.importAll(cloud);
+  await load();
+  data.settings = withDefaults({ ...data.settings, push: cfg });
+  await store.setKV('settings', data.settings);
+  lastSync = lastBackup = '';
+  return true;
+}
+
 const VIEWS = { today: renderToday, log: renderLog, dash: renderDashboard, history: renderHistory, settings: renderSettings };
 
 async function render() {
@@ -60,6 +84,7 @@ async function render() {
   document.getElementById('topbar-date').textContent =
     new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
   sync(d);
+  backup();
 }
 
 const guard = (fn) => async (...args) => {
@@ -125,9 +150,19 @@ const actions = {
   enablePush: guard(async (cfg) => {
     data.settings = withDefaults({ ...data.settings, push: cfg });
     await store.setKV('settings', data.settings);
+    // Fresh install: pull the log back from the cloud before anything can overwrite it.
+    const restored = !data.sessions.length && await restoreFromCloud(cfg).catch((e) => { console.warn('[forge] restore failed', e); return false; });
+    if (restored) await render(); // show it even if subscribing below fails
     await subscribePush(cfg);
     lastSync = '';
-    toast('Notifications on.');
+    toast(restored ? 'Cloud backup restored. Notifications on.' : 'Notifications on.');
+    await render();
+  }),
+
+  restoreCloud: guard(async () => {
+    if (data.sessions.length && !confirm('Replace everything on this phone with the cloud backup?')) return;
+    if (!await restoreFromCloud(data.settings.push)) { toast('No cloud backup yet.'); return; }
+    toast('Cloud backup restored.');
     await render();
   }),
 

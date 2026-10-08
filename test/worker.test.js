@@ -75,3 +75,25 @@ test('service worker precaches every browser module', () => {
   ];
   for (const f of files) assert.ok(sw.includes(`'${f}'`), `sw.js SHELL is missing ${f}`);
 });
+
+test('worker: backup, restore, dated copy, and no empty overwrite', async () => {
+  const e = await env();
+  const empty = { app: 'forge', sessions: [], bodyweight: [], debts: [], moves: [], kv: [] };
+  const full = { ...empty, sessions: [{ id: 'a', type: 'run', date: '2026-10-07' }] };
+  const restore = async (body = {}) => worker.fetch(post('/restore', body), e);
+
+  assert.equal((await restore()).status, 404, 'nothing stored yet');
+  assert.equal((await worker.fetch(post('/backup', full, 'wrong'), e)).status, 401);
+  assert.equal((await worker.fetch(post('/backup', { app: 'other' }), e)).status, 400);
+  assert.equal((await worker.fetch(post('/backup', empty), e)).status, 200, 'empty is fine when the cloud is empty');
+  assert.equal((await worker.fetch(post('/backup', full), e)).status, 200);
+  assert.deepEqual(await (await restore()).json(), full);
+
+  const res = await worker.fetch(post('/backup', empty), e);
+  assert.equal(res.status, 409, 'a fresh install must not wipe a backup that holds data');
+  assert.deepEqual(await (await restore()).json(), full);
+
+  const day = new Date().toISOString().slice(0, 10);
+  assert.deepEqual(await (await restore({ date: day })).json(), full);
+  assert.equal((await restore({ date: '../sub' })).status, 400);
+});

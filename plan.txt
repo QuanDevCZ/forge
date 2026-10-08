@@ -153,3 +153,28 @@ writing the charts and `frontend-design` for the UI.
   (https://forge-push.nguyenhonza1301.workers.dev), KV namespace FORGE, cron every 15 min.
   Phone subscribed via web.push.apple.com; test push received. Phone token changed to
   5 typeable groups; VAPID subject is the app URL instead of an email address.
+- 2026-10-07: Data loss + cloud backup. GitHub Pages stopped serving every site on the
+  WebJohn7 account ("There isn't a GitHub Pages site here"), the installed app showed a 404,
+  and the Home Screen icon was deleted — which deleted the phone's IndexedDB with it. The
+  only surviving copy was the Worker's push `state` snapshot (schedule, penalties, one move,
+  three logged session ids, no open debts); saved outside the repo at
+  Desktop/forge-recovery/. Sets, weights and bodyweight were lost.
+  Plan:
+  1. sw.js: fall back to the cache when the host answers with an HTTP error, not only when
+     the network is down — a 404 from a missing Pages site must not replace a cached app.
+     VERSION → forge-v3.
+  2. Worker: POST /backup stores the full export (same JSON as Export) in KV `backup`, plus
+     a dated copy `backup:YYYY-MM-DD` that expires after 30 days. It refuses (409) to replace
+     a backup that holds data with one that holds none, so a fresh install can never wipe
+     the cloud copy. POST /restore returns `backup`, or a dated copy with { date }.
+  3. App: after each render, if the Worker URL + token are set, upload the export when it
+     changed (deduped, so a plain re-render costs no KV write).
+  4. Settings → Backup: "Restore from cloud". "Save & enable" under Notifications restores
+     automatically when this phone has no sessions and the cloud has a backup — reinstall
+     = enter URL + token once, data comes back.
+  5. Seed the cloud with a backup rebuilt from the recovered snapshot: schedule, penalties,
+     the 10-03 → 10-08 move, the three sessions as bare records ("recovered, details lost"),
+     startDate 2026-10-07 so the gap while the app was dead does not count as misses.
+  6. Tests for /backup, /restore and the empty-overwrite guard. CLAUDE.md: the Worker now
+     holds the full log (was: never sees it). README: reinstall/restore steps.
+  KV free tier is 1,000 writes/day; each change costs 2 writes. Still zero cost.

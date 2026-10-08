@@ -30,8 +30,11 @@ Share → Add to Home Screen (details in [§2](#2-install-on-the-iphone)).
 3. Open Forge **from the Home Screen icon** from now on. The rules start counting from the
    first day you open it.
 
-Data is stored on the phone only. Use **Settings → Export JSON** now and then and save the
-file to iCloud Drive / Files.
+Data lives on the phone, and with notifications set up (§3) every change is also backed up to
+the Worker. **Deleting the Home Screen icon deletes the phone's copy.** To reinstall: add it to
+the Home Screen again → Settings → enter the Worker URL + token → **Save & enable**. A phone with
+no sessions pulls the cloud backup back first. **Settings → Restore from cloud** does the same
+by hand. **Export JSON** still works for a file copy in iCloud Drive / Files.
 
 ## 3. Notifications (optional, free)
 

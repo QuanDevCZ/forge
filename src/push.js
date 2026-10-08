@@ -1,5 +1,5 @@
-// Browser-only. Web Push client: subscribe this device to the Forge Worker and keep the
-// Worker's copy of the schedule/log state current so its reminders are accurate.
+// Browser-only. Forge Worker client: subscribe this device to push, keep the Worker's copy of
+// the schedule/log state current so its reminders are accurate, and back the full log up to it.
 
 const b64urlToBytes = (s) => {
   const pad = '='.repeat((4 - (s.length % 4)) % 4);
@@ -15,7 +15,7 @@ async function api(cfg, path, body) {
     headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.token}` },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`${path} failed: ${res.status} ${await res.text()}`);
+  if (!res.ok) throw Object.assign(new Error(`${path} failed: ${res.status} ${await res.text()}`), { status: res.status });
   return res.json().catch(() => ({}));
 }
 
@@ -46,3 +46,10 @@ export async function enablePush(cfg) {
 
 export const syncPushState = (cfg, state) => (cfg.workerUrl && cfg.token ? api(cfg, '/state', state) : Promise.resolve());
 export const sendTestPush = (cfg) => api(cfg, '/test', {});
+export const uploadBackup = (cfg, backup) => api(cfg, '/backup', backup);
+
+// The latest cloud backup, or null when the Worker has none yet.
+export async function downloadBackup(cfg) {
+  if (!cfg.workerUrl || !cfg.token) throw new Error('Enter the Worker URL and token under Notifications first.');
+  try { return await api(cfg, '/restore', {}); } catch (e) { if (e.status === 404) return null; throw e; }
+}

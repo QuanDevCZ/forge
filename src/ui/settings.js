@@ -48,8 +48,11 @@ export function renderSettings(root, { d, actions }) {
 
     <h2>Backup</h2>
     <div class="card">
-      <p class="secondary">Your data lives only on this phone. Export a backup now and then (save it to Files / iCloud Drive).</p>
+      <p class="secondary">${s.push.workerUrl && s.push.token
+        ? 'Every change is also backed up to your Worker. After a reinstall, enter the Worker URL + token above and tap Save &amp; enable — the log comes back.'
+        : 'Your data lives only on this phone. Set up the Worker above to back it up automatically, or export now and then (save it to Files / iCloud Drive).'}</p>
       <div class="btn-row">
+        <button class="btn" type="button" id="restore-cloud">Restore from cloud</button>
         <button class="btn" type="button" id="export">Export JSON</button>
         <label class="btn" style="position:relative">Import JSON<input type="file" id="import" accept="application/json,.json" style="position:absolute;inset:0;opacity:0"></label>
       </div>
@@ -68,6 +71,7 @@ export function renderSettings(root, { d, actions }) {
       return;
     }
     if (ev.target.id === 'export') await actions.exportData();
+    if (ev.target.id === 'restore-cloud') await actions.restoreCloud();
     if (ev.target.id === 'test-push') await actions.testPush();
   };
 
