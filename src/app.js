@@ -167,8 +167,8 @@ const actions = {
   }),
 
   testPush: guard(async () => {
-    await sendTestPush(data.settings.push);
-    toast('Test sent — check your lock screen.');
+    const here = await sendTestPush(data.settings.push);
+    toast(here ? 'Test sent — check your notifications.' : 'Test sent to your subscribed device (not this one).');
   }),
 
   exportData: guard(async () => {

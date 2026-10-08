@@ -36,7 +36,7 @@ export function renderSettings(root, { d, actions }) {
     <h2>Notifications</h2>
     <form class="card" id="push">
       <p class="secondary">Reminders at 06:30, 07:00, 17:15 (club days), 21:00 and Sunday 20:00. Sent by your free Cloudflare Worker — see README.</p>
-      ${!push.standalone ? '<p style="color:var(--warning)">⚠ Open Forge from the Home Screen icon to enable notifications (iPhone requirement).</p>' : ''}
+      ${push.ios && !push.standalone ? '<p style="color:var(--warning)">⚠ Open Forge from the Home Screen icon to enable notifications (iPhone requirement).</p>' : ''}
       <label class="field"><span>Worker URL</span><input type="url" name="workerUrl" placeholder="https://forge-push.yourname.workers.dev" value="${esc(s.push.workerUrl)}"></label>
       <label class="field"><span>Token</span><input type="password" name="token" autocomplete="off" value="${esc(s.push.token)}"></label>
       <p class="hint">Status: permission ${esc(push.permission)}</p>
