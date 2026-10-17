@@ -2,7 +2,7 @@
 
 Personal training tracker for iPhone. A web app (PWA): no App Store, no cost.
 
-**Live:** https://webjohn7.github.io/forge/ — open it in Safari on the iPhone, then
+**Live:** https://quandevcz.github.io/forge/ — open it in Safari on the iPhone, then
 Share → Add to Home Screen (details in [§2](#2-install-on-the-iphone)).
 
 - **Enforced week:** Mon run + TKD club 18:00, Tue lower body, Wed TKD club, Thu rest,
@@ -53,7 +53,7 @@ To set it up again from scratch:
    npx wrangler login                        # click Allow in the browser tab
    npx wrangler kv namespace create FORGE    # paste the printed id into wrangler.toml
    node ../tools/vapid-keys.mjs | Select-String "=" | Out-File -Encoding ascii .dev.vars
-   Add-Content .dev.vars "VAPID_SUBJECT=https://webjohn7.github.io/forge/"
+   Add-Content .dev.vars "VAPID_SUBJECT=https://quandevcz.github.io/forge/"
    npx wrangler deploy                       # needs a workers.dev subdomain on the account
    node ../tools/push-secrets.mjs            # uploads .dev.vars as Worker secrets
    ```

@@ -21,7 +21,7 @@ const CORS = {
 const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', ...CORS } });
 
 const vapid = (env) => ({
-  publicKey: env.VAPID_PUBLIC, privateKey: env.VAPID_PRIVATE, subject: env.VAPID_SUBJECT || 'https://webjohn7.github.io/forge/',
+  publicKey: env.VAPID_PUBLIC, privateKey: env.VAPID_PRIVATE, subject: env.VAPID_SUBJECT || 'https://quandevcz.github.io/forge/',
 });
 
 function authorised(req, env) {
